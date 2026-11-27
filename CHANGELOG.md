@@ -14,6 +14,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Liftover of the BK012101.1 annotation onto KT899744delRR, keeping the 18
   noncoding transcripts.
 - Master GTF with ORF genes, transcripts, TSS and TES rows.
+- Class definitions: `non_overlapping` and `partially_overlapping` are decided
+  against all same-strand ORFs (kept or excluded), so the host of an embedded
+  ORF is `partially_overlapping`; effective unique length is computed against
+  kept ORFs only.
+- TSS and TES rows are skipped for transcripts clipped at a genome boundary
+  when the end lies at the clip point (position 1 or the end of the genome).
 - ORF classification and the quantification and visualization GTFs, with
   excluded-CDS, overlap and summary reports.
 - GTF validator, pipeline-helper check and unit tests.

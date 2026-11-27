@@ -71,7 +71,10 @@ edited. Its header reads `Δ1-9603`, but the sequence shows the deletion is
    gene.
 4. **Master.** One 1 bp `TSS` row (at the 5' end) and one 1 bp `TES` row (at
    the 3' end) per BK012101.1 mRNA, collapsing exact duplicates. Each row
-   carries the `source_transcripts` it came from.
+   carries the `source_transcripts` it came from. A TSS or TES is omitted
+   when its transcript was clipped at a genome boundary and that end lies at
+   the clip point (position 1 or the end of the alignment at 135,161); the
+   true end is outside the genome.
 5. **Derive.** ORFs are classified (below), then the quantification GTF, the
    visualization GTF and the reports are written.
 6. **Validate.** Coordinates in bounds, gene/transcript/exon structure,
@@ -91,8 +94,8 @@ class:
 
 | Class | Definition | In quantification GTF |
 |---|---|---|
-| `non_overlapping` | No CDS base shared with another ORF | Kept |
-| `partially_overlapping` | Some bases shared, but not inside any single other ORF | Kept |
+| `non_overlapping` | No CDS base shared with any other same-strand ORF, kept or excluded | Kept |
+| `partially_overlapping` | At least one CDS base shared with another same-strand ORF (including an excluded embedded ORF) and not itself embedded | Kept |
 | `embedded` | All CDS bases inside one other ORF | Excluded; host in `containing_cds_id` |
 | `retained_zero_unique` | Kept, but every base is shared with other kept ORFs | Kept and flagged |
 
@@ -106,22 +109,26 @@ Rules for special cases:
 - CDSs that are frameshifted in KOS relative to BK012101.1 are classified
   normally, flagged `cds_check "frameshift"`, and kept.
 
-Result of the current build (`annotation_summary.tsv`): 258 ORFs, of which 160
-are non-overlapping, 58 partially overlapping and 40 embedded. The 40 embedded
+Result of the current build (`annotation_summary.tsv`): 258 ORFs, of which 143
+are non-overlapping, 75 partially overlapping and 40 embedded. The 40 embedded
 ORFs are excluded, leaving 218 in the quantification GTF; 0 are
 `retained_zero_unique`. Each excluded ORF has exactly one host, listed in
-`excluded_CDSs.tsv` (for example UL26.5 in UL26, UL12.5 in UL12). The master
-and visualization GTFs have 292 TSS and 158 TES rows.
+`excluded_CDSs.tsv` (for example UL26.5 in UL26, UL12.5 in UL12); a host of an
+excluded ORF is therefore itself `partially_overlapping` (UL26 is one). The
+master and visualization GTFs have 290 TSS and 157 TES rows.
 
 ### Strand and ambiguous reads
 
 Opposite-strand overlaps are listed in `CDS_overlaps.tsv` for information only
-and do not affect classes: featureCounts is strand-aware in both pipelines.
-Both pipelines run featureCounts with `-t CDS -g gene_id` and without `-O`, so
-a read overlapping more than one kept ORF is discarded as ambiguous. Excluding
-embedded ORFs makes reads in them count for the host ORF instead of being
-discarded. Do not add `-O` or `--fraction` with this GTF: they would count
-reads in partially overlapping ORFs more than once.
+and do not affect classes. They do not cause lost reads only when counting is
+strand-aware (stranded library, featureCounts `-s 1` or `-s 2`); with `-s 0`
+they are also ambiguous. Both pipelines run featureCounts with
+`-t CDS -g gene_id` and without `-O`, so a read overlapping more than one kept
+ORF is discarded as ambiguous. Excluding embedded ORFs makes reads in them
+count for the host ORF instead of being discarded. `-O` would assign reads in
+overlapping ORFs to every ORF they touch (with `--fraction`, as split
+fractional counts), which changes counts relative to earlier runs. Do not add
+either when using this GTF.
 
 ### `retained_zero_unique`
 
@@ -137,7 +144,11 @@ same-strand ORF, computed on the quantification GTF. `CDS_overlaps.tsv` reports
 it (`unique_len_a`, `unique_len_b`) next to the full CDS length. Neither
 pipeline uses it. If you want length-normalized values that reflect only the
 bases that can yield uniquely assigned reads, divide counts by this length
-instead of the full CDS length (for example in TPM or RPKM). ORFs with
+instead of the full CDS length (for example in TPM or RPKM). It is only an
+approximation of the region that can yield uniquely assigned reads: a read that
+starts in a unique region and runs into a shared one is still discarded, so the
+usable region is shorter by about one read length at each boundary (this
+matters for short ORFs and for Ribo-seq). ORFs with
 effective length 0 are the `retained_zero_unique` ORFs and cannot be
 normalized this way.
 
@@ -200,7 +211,6 @@ here.
 ## Tests
 
 ```bash
-module load apptainer   # as for the other pipelines
 /project/dremel_lab/miniforge3/envs/pipelines/bin/python -m pytest tests
 ```
 

@@ -17,9 +17,9 @@ crossing a deleted boundary were clipped, and each lifted CDS was
 re-translated and compared with the source protein. This gave 258 ORFs, with
 one gene per ORF, plus 18 noncoding transcripts. For read counting, 40 ORFs
 whose coding bases all lie inside one other same-strand ORF were excluded, so
-that reads in these regions are assigned to the containing ORF; the remaining
-218 ORFs (160 non-overlapping and 58 partially overlapping) were used with
-featureCounts (strand-aware, `-t CDS -g gene_id`, without counting multi-overlap
+that reads in these regions are assigned to the containing kept ORF; the remaining
+218 ORFs (143 non-overlapping and 75 partially overlapping) were used with
+featureCounts (strand-aware counting, `-t CDS -g gene_id`, without counting multi-overlap
 reads), which discards reads overlapping more than one ORF. Transcription
 start and end sites were taken from the 5' and 3' ends of the BK012101.1
 mRNAs and are included in the annotation used for visualization only.
