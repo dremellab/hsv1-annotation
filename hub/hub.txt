@@ -48,3 +48,12 @@ itemRgb on
 bigDataUrl KT899744delRR/tss_tes.bb
 visibility dense
 priority 4
+
+track mirna
+shortLabel miRNAs (miRBase 23.1)
+longLabel HSV-1 miRNA precursors and mature arms (miRBase 23.1); H11 shown on both strands (palindromic precursor)
+type bigBed 6
+bigDataUrl KT899744delRR/mirna.bb
+visibility pack
+color 128,0,128
+priority 5

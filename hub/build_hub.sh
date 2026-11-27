@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build a UCSC assembly hub for KT899744delRR from the committed outputs.
-# Tracks: quantification GTF, visualization GTF, TSS/TES points, excluded ORFs.
+# Tracks: quantification GTF, visualization GTF, TSS/TES points, excluded ORFs, miRNAs.
 # Needs UCSC tools (faToTwoBit, twoBitInfo, gtfToGenePred, genePredToBed,
 # bedToBigBed); on Rivanna they are in the biocondatools env (BIN below).
 set -euo pipefail
@@ -48,5 +48,9 @@ awk -F'\t' 'BEGIN{OFS="\t"} NR>1 {
   print $3, $4-1, $5, n "_in_" h, 0, $6 }' "$OUT/KT899744delRR.excluded_CDSs.tsv" \
   | LC_ALL=C sort -k1,1 -k2,2n -k4,4 > "$TMP/excluded.bed"
 "$BIN/bedToBigBed" -type=bed6 "$TMP/excluded.bed" "$HUB/chrom.sizes" "$HUB/excluded.bb"
+
+# miRNA precursors and mature arms (BED6 written by scripts/place_mirnas.py)
+LC_ALL=C sort -k1,1 -k2,2n -k4,4 -k6,6 "$OUT/KT899744delRR.miRNA.bed" > "$TMP/mirna.bed"
+"$BIN/bedToBigBed" -type=bed6 "$TMP/mirna.bed" "$HUB/chrom.sizes" "$HUB/mirna.bb"
 
 echo "hub files written to $HUB"
