@@ -15,4 +15,19 @@ curl -sS -o "$BK/BK012101.1.gff3" \
 curl -sS -o "$OUT/sources/KT899744.1/KT899744.1.fa" \
   "$EU?db=nuccore&id=KT899744.1&rettype=fasta&retmode=text"
 
+# miRBase 23.1: keep the HSV-1 entries (header starts ">hsv1-") of the full files.
+# MIRBASE_DIR (optional) points at already-downloaded hairpin.fa and mature.fa.
+MB="$OUT/sources/miRBase_23.1"
+mkdir -p "$MB"
+MBTMP="$(mktemp -d)"
+trap 'rm -rf "$MBTMP"' EXIT
+for kind in hairpin mature; do
+  if [[ -n "${MIRBASE_DIR:-}" ]]; then
+    cp "$MIRBASE_DIR/$kind.fa" "$MBTMP/$kind.fa"
+  else
+    curl -sS -o "$MBTMP/$kind.fa" "https://www.mirbase.org/download/$kind.fa"
+  fi
+  awk '/^>/ {keep = ($1 ~ /^>hsv1-/)} keep' "$MBTMP/$kind.fa" > "$MB/hsv1_$kind.fa"
+done
+
 (cd "$OUT" && md5sum -c sources/checksums.md5)
