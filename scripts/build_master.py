@@ -42,7 +42,7 @@ def tss_tes_rows(rows: list[list[str]]) -> list[list[str]]:
 
 
 def sort_key(r: list[str]) -> tuple:
-    return (int(r[3]), int(r[4]), FEATURE_RANK.get(r[2], len(FEATURE_RANK)), r[6], r[8])
+    return (int(r[3]), -int(r[4]), FEATURE_RANK.get(r[2], len(FEATURE_RANK)), r[6], r[8])
 
 
 def main() -> None:

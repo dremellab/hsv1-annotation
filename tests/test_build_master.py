@@ -64,5 +64,8 @@ def test_deterministic_order(tmp_path):
     assert outs[0] == outs[1] == outs[2]
     assert outs[0].startswith(b"#!annotation-version v1.2.3\n")
     body = read_gtf(str(tmp_path / "out0.gtf"))
-    assert body == sorted(body, key=lambda r: (int(r[3]), int(r[4])))
+    assert body == sorted(body, key=lambda r: (int(r[3]), -int(r[4])))
+    at100 = [r[2] for r in body if r[3] == "100" and r[6] == "+"]
+    assert at100.index("gene") < at100.index("TSS")
+    assert at100.index("gene") < at100.index("exon")
     assert len(body) == len(rows) + 5
