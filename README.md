@@ -191,9 +191,9 @@ files are reproducible; their MD5s are in `sources/checksums.md5`.
 **Result.** 17 of 18 precursors and 25 of 27 mature miRNAs are placed on
 KT899744delRR. With H11 annotated on both strands this gives 18 precursor
 records and 26 mature records (the H11-3p arm has one record per strand).
-Of the 17 placed precursors, 12 are exact matches on KT899744delRR, 3 are
-projected from BK012101.1 (H3, H18, and H15 after refinement) and 2 come from local alignment
-(H8, H17). The per-miRNA table is `output/KT899744delRR/KT899744delRR.miRNA_report.tsv`
+The 17 placed precursors split as 12 `exact_target`, 2
+`projected_from_BK012101.1` (H3, H18), 1 `projected_refined` (H15) and 2
+`local_alignment` (H8, H17); H5 is `unplaced`. The per-miRNA table is `output/KT899744delRR/KT899744delRR.miRNA_report.tsv`
 (columns: `name mirbase_id type chrom start end strand placement identity_pct
 aln_length flags`; coordinates are 1-based on `KT899744`).
 
@@ -211,7 +211,7 @@ aln_length flags`; coordinates are 1-based on `KT899744`).
 | H12 | exact_target | 121584-121671 (-) | 100.0 | none |
 | H13 | exact_target | 121595-121658 (+) | 100.0 | none |
 | H14 | exact_target | 112625-112713 (-) | 100.0 | none |
-| H15 | projected_refined | 109955-110052 (-) | 100.0 | length_changed |
+| H15 | projected_refined | 109955-110052 (-) | 100.0 (98 of 102 nt) | length_changed |
 | H16 | exact_target | 59819-59918 (+) | 100.0 | none |
 | H17 | local_alignment | 117183-117277 (-) | 97.9 | approximate |
 | H18 | projected_from_BK012101.1 | 121460-121554 (+) | NA | none |
@@ -242,6 +242,9 @@ aln_length flags`; coordinates are 1-based on `KT899744`).
       same strand, the placement becomes `projected_refined` and identity and
       `aln_length` come from that alignment (the refinement is used only if the
       alignment covers at least 80% of the hairpin at 80% identity or better).
+      For H15 the identity is 100.0 over 98 of 102 nt: the hairpin's 5' 4 nt
+      (ACCA) do not align (a sequence difference in KOS), so the precursor
+      ends are approximate.
       Identity is `NA` for other projected hits.
    3. `local_alignment`: otherwise (H8, H17), the mature arm(s) are placed
       by methods 1 and 2, then the hairpin is aligned (Smith-Waterman,
