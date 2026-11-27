@@ -58,8 +58,14 @@ def test_identical_footprint_tiebreak():
 def test_identical_footprint_no_suffix_variants():
     # neither plain: longer annotated CDS wins, then alphabetical
     f = fp(("A_x", "+", [(1, 30)]), ("A_y", "+", [(1, 30)]))
-    assert classify(f)[P + "A_x"].cls == "non_overlapping"
-    assert classify(f)[P + "A_y"].reason == "identical_footprint"
+    r = classify(f)
+    assert r[P + "A_x"].cls == "non_overlapping"
+    assert r[P + "A_y"].reason == "identical_footprint"
+    # annotated length overrides alphabetical order
+    r = classify(f, {P + "A_x": 30, P + "A_y": 60})
+    assert r[P + "A_y"].cls == "non_overlapping"
+    assert (r[P + "A_x"].cls, r[P + "A_x"].reason, r[P + "A_x"].host) == (
+        "embedded", "identical_footprint", P + "A_y")
 
 
 def test_chain():
