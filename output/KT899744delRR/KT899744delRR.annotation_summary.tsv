@@ -6,6 +6,8 @@ embedded	40
 excluded	40
 retained	218
 retained_zero_unique	0
-mirna	0
+mirna	26
+mirna_precursors	18
+mirna_unplaced	3
 tss	290
 tes	157
