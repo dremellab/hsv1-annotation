@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from check_gtf import check
-from gtflib import read_fasta, read_gtf
+from gtflib import parse_attrs, read_fasta, read_gtf
 
 P = "KT899744delRR_"
 ROOT = Path(__file__).resolve().parent.parent
@@ -125,7 +125,9 @@ def test_real_derive(paf, tmp_path):
          "--keep-noncoding"], check=True, capture_output=True)
     subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "build_master.py"), "--in-gtf", str(lifted),
-         "--out-gtf", str(master), "--version", "v0"], check=True, capture_output=True)
+         "--out-gtf", str(master), "--version", "v0", "--fasta", str(tgt)], check=True, capture_output=True)
+    names = {parse_attrs(r[8])["gene_id"] for r in read_gtf(str(master)) if r[2] in ("TSS", "TES")}
+    assert not names & {P + "TSS_1p", P + "TSS_135161m", P + "TES_135161p"}
     o = tmp_path / "out"
     subprocess.run([sys.executable, str(SCRIPT), "--master", str(master), "--outdir", str(o),
                     "--name", NAME], check=True, capture_output=True)

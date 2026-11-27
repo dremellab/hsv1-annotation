@@ -4,17 +4,30 @@ from __future__ import annotations
 
 import argparse
 
-from gtflib import format_attrs, parse_attrs, read_gtf, write_gtf
+from gtflib import format_attrs, parse_attrs, read_fasta, read_gtf, write_gtf
 
 PREFIX = "KT899744delRR_"
+# The collinear alignment block stops 3 bp short of the genome end (135161 of
+# 135164), so a clipped transcript's end lands there, not on the last base.
+EDGE_SLACK = 3
 FEATURE_RANK = {f: i for i, f in enumerate(
     ["gene", "transcript", "exon", "CDS", "start_codon", "stop_codon", "TSS", "TES"])}
 
 
-def tss_tes_rows(rows: list[list[str]]) -> list[list[str]]:
-    """One TSS and one TES per transcript with exons, collapsed by position and strand."""
+def tss_tes_rows(rows: list[list[str]], genome_len: int | None = None) -> list[list[str]]:
+    """One TSS and one TES per transcript with exons, collapsed by position and strand.
+
+    An end is skipped when the transcript was clipped at a genome boundary
+    (liftover_status contains "clipped") and that end sits at position 1 or
+    within EDGE_SLACK bases of genome_len, because the real transcript end lies outside the genome.
+    """
+    clipped: set[str] = set()
     ends: dict[str, list] = {}
     for r in rows:
+        if r[2] == "transcript":  # liftover_status is carried on transcript rows
+            a = parse_attrs(r[8])
+            if "clipped" in a.get("liftover_status", "") and "transcript_id" in a:
+                clipped.add(a["transcript_id"])
         if r[2] != "exon":
             continue
         tid = parse_attrs(r[8]).get("transcript_id")
@@ -28,6 +41,8 @@ def tss_tes_rows(rows: list[list[str]]) -> list[list[str]]:
     for tid, (seq, strand, lo, hi) in ends.items():
         five, three = (lo, hi) if strand == "+" else (hi, lo)
         for feat, pos in (("TSS", five), ("TES", three)):
+            if tid in clipped and (pos == 1 or (genome_len is not None and pos >= genome_len - EDGE_SLACK)):
+                continue
             key = (feat, pos, strand)
             points.setdefault(key, set()).add(tid)
             seqname.setdefault(key, seq)
@@ -50,9 +65,10 @@ def main() -> None:
     ap.add_argument("--in-gtf", required=True)
     ap.add_argument("--out-gtf", required=True)
     ap.add_argument("--version", required=True)
+    ap.add_argument("--fasta", required=True, help="genome FASTA (for its length)")
     a = ap.parse_args()
     rows = read_gtf(a.in_gtf)
-    rows = sorted(rows + tss_tes_rows(rows), key=sort_key)
+    rows = sorted(rows + tss_tes_rows(rows, len(read_fasta(a.fasta))), key=sort_key)
     write_gtf(a.out_gtf, rows, [f"#!annotation-version {a.version}"])
 
 

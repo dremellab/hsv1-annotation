@@ -51,6 +51,8 @@ def test_deterministic_order(tmp_path):
             exon("t2", 100, 250, "-"), exon("t3", 100, 200, "+")]
     rows.append(["KT899744", "Genbank", "gene", "100", "400", ".", "+", ".",
                  'gene_id "g_t1";'])
+    fa = tmp_path / "g.fa"
+    fa.write_text(">g\n" + "A" * 1000 + "\n")
     outs = []
     for i in range(3):
         shuffled = rows[:]
@@ -59,7 +61,8 @@ def test_deterministic_order(tmp_path):
         inp.write_text("".join("\t".join(r) + "\n" for r in shuffled))
         out = tmp_path / f"out{i}.gtf"
         subprocess.run([sys.executable, str(BUILD), "--in-gtf", str(inp),
-                        "--out-gtf", str(out), "--version", "v1.2.3"], check=True)
+                        "--out-gtf", str(out), "--version", "v1.2.3",
+                        "--fasta", str(fa)], check=True)
         outs.append(out.read_bytes())
     assert outs[0] == outs[1] == outs[2]
     assert outs[0].startswith(b"#!annotation-version v1.2.3\n")
@@ -69,3 +72,26 @@ def test_deterministic_order(tmp_path):
     assert at100.index("gene") < at100.index("TSS")
     assert at100.index("gene") < at100.index("exon")
     assert len(body) == len(rows) + 5
+
+
+def transcript(tid, strand, status):
+    return ["KT899744", "Genbank", "transcript", "1", "1", ".", strand, ".",
+            f'gene_id "g_{tid}"; transcript_id "{tid}"; liftover_status "{status}";']
+
+
+def test_clipped_ends_at_genome_boundary_skipped():
+    rows = [transcript("p", "+", "clipped_terminal_repeat"), exon("p", 1, 500, "+"),
+            transcript("m", "-", "clipped_terminal_repeat;indel(-36)"), exon("m", 600, 997, "-"),
+            transcript("q", "+", "clipped_terminal_repeat"), exon("q", 700, 997, "+")]
+    out = tss_tes_rows(rows, 1000)
+    tss = {r[3] for r in by_feature(out, "TSS")}
+    tes = {r[3] for r in by_feature(out, "TES")}
+    assert tss == {"700"} and tes == {"500", "600"}  # p TSS@1, m TSS@997, q TES@997 skipped (alignment ends 3 bp short of genome end)
+
+
+def test_unclipped_or_interior_ends_kept():
+    rows = [transcript("p", "+", "exact"), exon("p", 1, 1000, "+"),
+            transcript("q", "+", "clipped_terminal_repeat"), exon("q", 10, 900, "+")]
+    out = tss_tes_rows(rows, 1000)
+    assert {r[3] for r in by_feature(out, "TSS")} == {"1", "10"}
+    assert {r[3] for r in by_feature(out, "TES")} == {"1000", "900"}
