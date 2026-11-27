@@ -33,9 +33,9 @@ KT899744	miRBase_23.1	transcript	109130	109152	.	+	.	gene_id "hsv1-mir-H1"; gene
 KT899744	miRBase_23.1	exon	109130	109152	.	+	.	gene_id "hsv1-mir-H1"; gene_name "hsv1-mir-H1"; transcript_id "hsv1-miR-H1-3p"; transcript_biotype "miRNA"; mirbase_id "MIMAT0015220"; placement "exact_target"; flags "none";
 KT899744	miRBase_23.1	transcript	109130	109150	.	-	.	gene_id "hsv1-mir-H6"; gene_name "hsv1-mir-H6"; transcript_id "hsv1-miR-H6-5p"; transcript_biotype "miRNA"; mirbase_id "MIMAT0015281"; placement "exact_target"; flags "none";
 KT899744	miRBase_23.1	exon	109130	109150	.	-	.	gene_id "hsv1-mir-H6"; gene_name "hsv1-mir-H6"; transcript_id "hsv1-miR-H6-5p"; transcript_biotype "miRNA"; mirbase_id "MIMAT0015281"; placement "exact_target"; flags "none";
-KT899744	miRBase_23.1	gene	109955	110073	.	-	.	gene_id "hsv1-mir-H15"; gene_name "hsv1-mir-H15"; gene_biotype "miRNA";
-KT899744	miRBase_23.1	transcript	109955	110073	.	-	.	gene_id "hsv1-mir-H15"; gene_name "hsv1-mir-H15"; transcript_id "hsv1-mir-H15"; transcript_biotype "pre_miRNA"; mirbase_id "MI0013889"; placement "projected_from_BK012101.1"; flags "length_changed";
-KT899744	miRBase_23.1	exon	109955	110073	.	-	.	gene_id "hsv1-mir-H15"; gene_name "hsv1-mir-H15"; transcript_id "hsv1-mir-H15"; transcript_biotype "pre_miRNA"; mirbase_id "MI0013889"; placement "projected_from_BK012101.1"; flags "length_changed";
+KT899744	miRBase_23.1	gene	109955	110052	.	-	.	gene_id "hsv1-mir-H15"; gene_name "hsv1-mir-H15"; gene_biotype "miRNA";
+KT899744	miRBase_23.1	transcript	109955	110052	.	-	.	gene_id "hsv1-mir-H15"; gene_name "hsv1-mir-H15"; transcript_id "hsv1-mir-H15"; transcript_biotype "pre_miRNA"; mirbase_id "MI0013889"; placement "projected_refined"; flags "length_changed";
+KT899744	miRBase_23.1	exon	109955	110052	.	-	.	gene_id "hsv1-mir-H15"; gene_name "hsv1-mir-H15"; transcript_id "hsv1-mir-H15"; transcript_biotype "pre_miRNA"; mirbase_id "MI0013889"; placement "projected_refined"; flags "length_changed";
 KT899744	miRBase_23.1	transcript	109974	109995	.	-	.	gene_id "hsv1-mir-H15"; gene_name "hsv1-mir-H15"; transcript_id "hsv1-miR-H15-3p"; transcript_biotype "miRNA"; mirbase_id "MIMAT0014693"; placement "exact_target"; flags "none";
 KT899744	miRBase_23.1	exon	109974	109995	.	-	.	gene_id "hsv1-mir-H15"; gene_name "hsv1-mir-H15"; transcript_id "hsv1-miR-H15-3p"; transcript_biotype "miRNA"; mirbase_id "MIMAT0014693"; placement "exact_target"; flags "none";
 KT899744	miRBase_23.1	gene	112625	112713	.	-	.	gene_id "hsv1-mir-H14"; gene_name "hsv1-mir-H14"; gene_biotype "miRNA";

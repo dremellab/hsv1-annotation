@@ -12,7 +12,7 @@ hsv1-mir-H11_minus	MI0013885	precursor	KT899744	53208	53337	-	exact_target	100.0
 hsv1-mir-H12	MI0013886	precursor	KT899744	121584	121671	-	exact_target	100.0	88	none
 hsv1-mir-H13	MI0013887	precursor	KT899744	121595	121658	+	exact_target	100.0	64	none
 hsv1-mir-H14	MI0013888	precursor	KT899744	112625	112713	-	exact_target	100.0	89	none
-hsv1-mir-H15	MI0013889	precursor	KT899744	109955	110073	-	projected_from_BK012101.1	NA	119	length_changed
+hsv1-mir-H15	MI0013889	precursor	KT899744	109955	110052	-	projected_refined	100.0	98	length_changed
 hsv1-mir-H16	MI0013890	precursor	KT899744	59819	59918	+	exact_target	100.0	100	none
 hsv1-mir-H17	MI0013891	precursor	KT899744	117183	117277	-	local_alignment	97.9	95	approximate
 hsv1-mir-H18	MI0013892	precursor	KT899744	121460	121554	+	projected_from_BK012101.1	NA	95	none
