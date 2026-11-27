@@ -20,17 +20,6 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.fixture(scope="module")
-def paf(tmp_path_factory):
-    out = tmp_path_factory.mktemp("paf") / "bk_to_delrr.paf"
-    with open(out, "w") as fh:
-        subprocess.run(
-            ["minimap2", "-cx", "asm20", "--cs", "--eqx", "-N", "50", "-p", "0.3",
-             str(TGT), str(SRC / "BK012101.1.fa")],
-            stdout=fh, stderr=subprocess.DEVNULL, check=True)
-    return out
-
-
 def run_lift(paf, tmp_path, *extra):
     out = tmp_path / "out.gtf"
     subprocess.run(
