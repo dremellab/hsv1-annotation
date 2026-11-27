@@ -23,5 +23,13 @@ featureCounts (strand-aware counting, `-t CDS -g gene_id`, without counting mult
 reads), which discards reads overlapping more than one ORF. Transcription
 start and end sites were taken from the 5' and 3' ends of the BK012101.1
 mRNAs and are included in the annotation used for visualization only.
+HSV-1 miRNAs from miRBase release 23.1 (Kozomara et al. 2019) were placed on
+KT899744delRR by exact match of each hairpin, then by projection of exact
+BK012101.1 matches through the minimap2 alignment, then by Smith-Waterman
+local alignment around the already placed mature arm; mature arms were kept
+only inside a placed precursor on the same strand. The palindromic H11
+precursor was annotated on both strands, and miR-H5, whose sequence lies in
+the removed terminal blocks, could not be placed. miRNAs are in the
+visualization and miRNA annotations only, not in the counting annotation.
 The annotation files and build scripts are available at
 https://github.com/dremellab/hsv1-annotation (release v0.1.0).

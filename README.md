@@ -10,8 +10,9 @@ inside another ORF are removed from the quantification GTF, and TSS and TES
 features are added to the visualization GTF. Host-virus RNA-seq and Ribo-seq
 pipelines (HAROLD, RIBOLD) can use the quantification GTF without code changes.
 
-miRNAs are out of scope for this version and will be added to the
-visualization GTF later.
+HSV-1 miRNAs (miRBase 23.1) are placed on KT899744delRR and added to the
+master and visualization GTFs; they have their own GTF, BED and report and are
+never in the quantification GTF (see "miRNAs").
 
 ## Quick start
 
@@ -76,7 +77,9 @@ edited. Its header reads `Δ1-9603`, but the sequence shows the deletion is
    the clip point (position 1 or the end of the alignment at 135,161); the
    true end is outside the genome.
 5. **Derive.** ORFs are classified (below), then the quantification GTF, the
-   visualization GTF and the reports are written.
+   visualization GTF and the reports are written. miRNAs (placed by
+   `scripts/place_mirnas.py`, see "miRNAs") are merged into the master before
+   this step and excluded from the quantification GTF.
 6. **Validate.** Coordinates in bounds, gene/transcript/exon structure,
    frames, stop codons, `gene_id` and `transcript_id` on every row, and no
    spaces in attribute values (`_fix_gtf.py` splits on whitespace). The
@@ -158,17 +161,139 @@ Committed in `output/KT899744delRR/`:
 
 | File | Contents |
 |---|---|
-| `KT899744delRR.master.gtf` | 258 ORF genes plus 18 noncoding genes, all transcripts, TSS and TES rows |
+| `KT899744delRR.master.gtf` | 258 ORF genes plus 18 noncoding genes and 18 miRNA precursor genes, all transcripts, TSS and TES rows |
 | `KT899744delRR.quantification.gtf` | 218 ORFs, CDS-carrying transcripts only; no TSS, TES or noncoding transcripts |
-| `KT899744delRR.visualization.gtf` | Same content as the master, sorted, attributes tidied for genome browsers |
+| `KT899744delRR.visualization.gtf` | Same content as the master (including the miRNAs), sorted, attributes tidied for genome browsers |
+| `KT899744delRR.miRNA.gtf` | miRNA precursor and mature records only (source `miRBase_23.1`); use this for small RNA-seq counting |
+| `KT899744delRR.miRNA.bed` | The same records as BED6, name = `transcript_id` |
+| `KT899744delRR.miRNA_report.tsv` | One row per placed miRNA record and one per unplaced miRBase entry: name, miRBase ID, type, coordinates, strand, placement, identity, alignment length, flags |
 | `KT899744delRR.excluded_CDSs.tsv` | One row per excluded ORF: CDS ID, gene name, chromosome, start, end, strand, CDS length, containing CDS ID, overlapping bases, unique bases, reason, `cds_check` |
 | `KT899744delRR.CDS_overlaps.tsv` | One row per overlapping ORF pair (either strand): each ORF's class, full length and effective unique length |
-| `KT899744delRR.annotation_summary.tsv` | Totals: CDSs, non-overlapping, partially overlapping, embedded, excluded, retained, `retained_zero_unique`, miRNA (0 until they are added), TSS, TES |
+| `KT899744delRR.annotation_summary.tsv` | Totals: CDSs, non-overlapping, partially overlapping, embedded, excluded, retained, `retained_zero_unique`, miRNA mature records, miRNA precursors, miRNA entries unplaced, TSS, TES |
 | `liftover_report.tsv` | Per BK012101.1 transcript: lift status, coordinates, protein ID, `cds_check`, amino-acid differences |
 | `bk_to_delrr.paf` | The minimap2 alignment used for lifting |
 
 All GTFs use sequence name `KT899744`, source `Genbank`, and gene IDs prefixed
 `KT899744delRR_`.
+
+## miRNAs
+
+**Source.** The HSV-1 entries (`hsv1-`) of miRBase release 23.1 (Kozomara et al.
+2019): 18 hairpins and 27 mature miRNAs, stored as
+`sources/miRBase_23.1/hsv1_hairpin.fa` and `hsv1_mature.fa` (sequences as
+published, U kept). `scripts/fetch_sources.sh` downloads the full
+`hairpin.fa` and `mature.fa` from miRBase and filters them, so the committed
+files are reproducible; their MD5s are in `sources/checksums.md5`.
+
+**Result.** 17 of 18 precursors and 25 of 27 mature miRNAs are placed on
+KT899744delRR. With H11 annotated on both strands this gives 18 precursor
+records and 26 mature records (the H11-3p arm has one record per strand).
+Of the 17 placed precursors, 12 are exact matches on KT899744delRR, 3 are
+projected from BK012101.1 (H3, H15, H18) and 2 come from local alignment
+(H8, H17). The per-miRNA table is `output/KT899744delRR/KT899744delRR.miRNA_report.tsv`
+(columns: `name mirbase_id type chrom start end strand placement identity_pct
+aln_length flags`; coordinates are 1-based on `KT899744`).
+
+| miRNA | Placement | Coordinates (strand) | Identity | Flags |
+|---|---|---|---|---|
+| H1 | exact_target | 109078-109163 (+) | 100.0 | none |
+| H2 | exact_target | 112632-112706 (+) | 100.0 | none |
+| H3 | projected_from_BK012101.1 | 116519-116599 (+) | NA | none |
+| H4 | exact_target | 116664-116744 (+) | 100.0 | none |
+| H5 | unplaced | not in KT899744delRR | NA | in_deleted_region |
+| H6 | exact_target | 109078-109163 (-) | 100.0 | none |
+| H7 | exact_target | 114202-114284 (+) | 100.0 | none |
+| H8 | local_alignment | 114597-114670 (+) | 97.3 | approximate |
+| H11 | exact_target | 53208-53337 (+ and -) | 100.0 | strand_ambiguous |
+| H12 | exact_target | 121584-121671 (-) | 100.0 | none |
+| H13 | exact_target | 121595-121658 (+) | 100.0 | none |
+| H14 | exact_target | 112625-112713 (-) | 100.0 | none |
+| H15 | projected_from_BK012101.1 | 109955-110073 (-) | NA | length_changed |
+| H16 | exact_target | 59819-59918 (+) | 100.0 | none |
+| H17 | local_alignment | 117183-117277 (-) | 97.9 | approximate |
+| H18 | projected_from_BK012101.1 | 121460-121554 (+) | NA | none |
+| H26 | exact_target | 83681-83743 (+) | 100.0 | none |
+| H27 | exact_target | 114201-114283 (-) | 100.0 | none |
+
+### How the miRNA annotation was made
+
+1. **Download and filter.** `scripts/fetch_sources.sh` downloads miRBase 23.1
+   `hairpin.fa` and `mature.fa`, keeps the `>hsv1-` entries and writes
+   `sources/miRBase_23.1/hsv1_{hairpin,mature}.fa`; the MD5s are checked.
+2. **Place precursors.** `scripts/place_mirnas.py` converts U to T and
+   searches both strands. For each hairpin it tries, in order:
+   1. `exact_target`: exact match on KT899744delRR. One hit is placed. Two
+      hits at the same start on opposite strands (a hairpin equal to its own
+      reverse complement, H11) are both kept and flagged `strand_ambiguous`.
+      Any other multiple hit is kept and flagged `multi_hit`.
+   2. `projected_from_BK012101.1`: otherwise, exact match on BK012101.1, with
+      start and end projected through the collinear minimap2 block (the
+      `build_map` function of `scripts/lift_bk012101.py`). A hit is kept if
+      both ends project. If the projection changes the length, the hit is
+      kept, the projected length is reported in `aln_length`, and the flag
+      `length_changed` is set (H15). Identity is `NA` for projected hits.
+   3. `local_alignment`: otherwise (H8, H17), the mature arm(s) are placed
+      by methods 1 and 2, then the hairpin is aligned (Smith-Waterman,
+      match +2, mismatch -3, gap -5) to KT899744delRR within 150 nt of the
+      placed arm on the arm's strand. Identity (%) and alignment length are
+      reported and the flag `approximate` is set.
+   4. `unplaced`: no GTF rows, only a report row. The flag is
+      `in_deleted_region` if the sequence matches KT899744.1 exactly inside
+      a block removed from KT899744delRR (blocks from `scripts/verify_delrr.py`),
+      otherwise `no_match`.
+3. **Place mature arms.** Each mature miRNA is placed by methods 1 and 2 on
+   its own and kept only where it lies inside a placed precursor of the same
+   miRNA (`hsv1-miR-H1-5p` belongs to `hsv1-mir-H1`) on the same strand. A
+   mature record reports its own placement method and identity, and carries
+   `strand_ambiguous` from its precursor.
+4. **H11.** See below. H11 is annotated on both strands.
+5. **Outputs.** `place_mirnas.py` writes `KT899744delRR.miRNA.gtf`,
+   `.miRNA.bed` and `.miRNA_report.tsv`. Each precursor has a `gene`,
+   `transcript` (`transcript_biotype "pre_miRNA"`) and `exon` row, and each
+   mature arm a `transcript` and `exon` row (`transcript_biotype "miRNA"`);
+   all carry `mirbase_id`, `placement` and `flags`. `build_master.py
+   --mirna-gtf` merges them into the master; `derive_gtfs.py` keeps genes with
+   `gene_biotype "miRNA"` out of the quantification GTF and reports the
+   `mirna`, `mirna_precursors` and `mirna_unplaced` summary rows;
+   `check_gtf.py` accepts miRNA genes without a CDS. The UCSC hub gets an
+   `mirna` track (`hub/build_hub.sh`).
+6. **Rebuild.** `./build.sh` runs steps 1 to 5 (placement is step 4b, after
+   the minimap2 alignment because it needs the PAF); `./hub/build_hub.sh`
+   rebuilds the hub. Both are reproducible: two builds give identical files.
+
+### H11 strand decision
+
+The H11 precursor is a perfect 130 bp inverted repeat in OriL, so the hairpin
+equals its own reverse complement and matches KT899744delRR at 53208-53337 on
+both strands. In BK012101.1, transcripts from both strands span it (the
+UL27.5-UL30 family on the + strand, the UL29.5-UL30.6 family on the - strand),
+so the data do not say which strand makes the miRNA. It is annotated on both
+strands, flagged `strand_ambiguous`, and the ids get `_plus` and `_minus`
+suffixes (`hsv1-mir-H11_plus`, `hsv1-miR-H11-3p_minus`). The 3p arm is at
+53280-53299 (+) and 53246-53265 (-). See Zou et al. 2020 and Duan et al.
+2023.
+
+### H5 is not in KT899744delRR
+
+H5 (`hsv1-mir-H5` and both arms) matches KT899744.1 at 126577-126656 (+) and
+151154-151233 (-), and BK012101.1 at 126720-126799 (+) and 151398-151477 (-).
+Both KT899744.1 positions lie in blocks removed from KT899744delRR
+(125845-126977 and 145361-151974), so H5 has no sequence on this genome. It is
+reported as `unplaced` with flag `in_deleted_region`, and reads from the H5
+locus cannot map to KT899744delRR. Other entries are not affected.
+
+### H1 and H6
+
+H1 and H6 are an antisense pair: both precursors start at 109078 and span
+109078-109163, H1 on the + strand and H6 on the - strand. They have different
+sequences, so they are two ordinary records, not `strand_ambiguous`.
+
+### Use
+
+The miRNAs are in the master and visualization GTFs and in the miRNA GTF and
+BED, never in the quantification GTF (it is byte-identical to the previous
+version). For small RNA-seq counting use `KT899744delRR.miRNA.gtf`; count the
+mature records (`transcript_biotype "miRNA"`), not the precursors.
 
 ## Publishing to the shared reference folder
 
@@ -230,10 +355,11 @@ Tracks:
 
 | Track | Source | Items |
 |---|---|---|
-| Visualization GTF | `KT899744delRR.visualization.gtf` | 303 transcripts |
+| Visualization GTF | `KT899744delRR.visualization.gtf` | 347 transcripts |
 | Quantification GTF | `KT899744delRR.quantification.gtf` | 245 transcripts |
 | Excluded ORFs | `KT899744delRR.excluded_CDSs.tsv`, labelled `ORF_in_HOST` | 40 |
 | TSS / TES | TSS (green) and TES (red) rows of the visualization GTF | 290 + 157 |
+| miRNAs (miRBase 23.1) | `KT899744delRR.miRNA.bed`: 18 precursor and 26 mature records, H11 on both strands | 44 |
 
 Items are labelled by ORF name. The default view (KT899744:41,000-44,000)
 shows UL26 with the embedded UL26.5, which is present in the visualization
@@ -270,3 +396,10 @@ If you use these annotations, please cite the sources they derive from:
   (GenBank KT899744.1).
 - Li H. 2018. Minimap2: pairwise alignment for nucleotide sequences.
   Bioinformatics 34:3094-3100.
+- Kozomara A, Birgaoanu M, Griffiths-Jones S. 2019. miRBase: from microRNA
+  sequences to function. Nucleic Acids Res 47:D155-D162.
+- Zou W, Zhou X, Wang L, Zhou GG, Chen X. 2020. Degradation of herpes simplex
+  virus-1 viral miRNA H11 by vaccinia virus protein VP55 attenuates viral
+  replication. Front Microbiol 11:717. doi:10.3389/fmicb.2020.00717
+- Duan Y, Sun L, Li Q. 2023. Herpes simplex virus 1 microRNAs: an update.
+  Intervirology 66:97-110. doi:10.1159/000531348
