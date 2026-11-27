@@ -84,7 +84,8 @@ def classify(fp: dict[str, Footprint],
             continue
         if unique == 0:
             cls = "retained_zero_unique"
-        elif unique < len(b):
+        elif any(fp[o][0] == s and b & fp[o][1] for o in fp if o != g):
+            # shares a base with any same-strand ORF, kept or excluded
             cls = "partially_overlapping"
         else:
             cls = "non_overlapping"

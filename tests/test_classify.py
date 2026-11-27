@@ -34,7 +34,8 @@ def test_embedded_single_host():
     r = classify(fp(("A", "+", [(10, 20)]), ("B", "+", [(1, 100)])))
     a = r[P + "A"]
     assert (a.cls, a.host, a.reason) == ("embedded", P + "B", "embedded_in_single_orf")
-    assert r[P + "B"].cls == "non_overlapping"
+    assert r[P + "B"].cls == "partially_overlapping"
+    assert r[P + "B"].unique_len == 100
 
 
 def test_opposite_strand_not_embedded():
@@ -50,7 +51,7 @@ def test_union_cover_not_embedded():
 
 def test_identical_footprint_tiebreak():
     r = classify(fp(("UL26", "+", [(1, 30)]), ("UL26_iORF", "+", [(1, 30)])))
-    assert r[P + "UL26"].cls == "non_overlapping"
+    assert r[P + "UL26"].cls == "partially_overlapping"
     x = r[P + "UL26_iORF"]
     assert (x.cls, x.reason, x.host) == ("embedded", "identical_footprint", P + "UL26")
 
@@ -59,11 +60,11 @@ def test_identical_footprint_no_suffix_variants():
     # neither plain: longer annotated CDS wins, then alphabetical
     f = fp(("A_x", "+", [(1, 30)]), ("A_y", "+", [(1, 30)]))
     r = classify(f)
-    assert r[P + "A_x"].cls == "non_overlapping"
+    assert r[P + "A_x"].cls == "partially_overlapping"
     assert r[P + "A_y"].reason == "identical_footprint"
     # annotated length overrides alphabetical order
     r = classify(f, {P + "A_x": 30, P + "A_y": 60})
-    assert r[P + "A_y"].cls == "non_overlapping"
+    assert r[P + "A_y"].cls == "partially_overlapping"
     assert (r[P + "A_x"].cls, r[P + "A_x"].reason, r[P + "A_x"].host) == (
         "embedded", "identical_footprint", P + "A_y")
 
@@ -72,7 +73,7 @@ def test_chain():
     r = classify(fp(("A", "+", [(10, 20)]), ("B", "+", [(5, 50)]), ("C", "+", [(1, 100)])))
     assert r[P + "A"].cls == r[P + "B"].cls == "embedded"
     assert r[P + "A"].host == P + "B"  # smallest containing footprint
-    assert r[P + "C"].cls == "non_overlapping"
+    assert r[P + "C"].cls == "partially_overlapping"
 
 
 def test_variant_transcripts_same_gene():
@@ -81,7 +82,7 @@ def test_variant_transcripts_same_gene():
             for t, s, e in (("t1", 1, 100), ("t2", 10, 20))]
     f = footprints(rows)
     assert f[P + "G"] == ("+", frozenset(range(1, 101)))
-    assert classify(f)[P + "G"].cls == "non_overlapping"
+    assert classify(f)[P + "G"].cls == "non_overlapping"  # one gene, own transcripts do not count
 
 
 def test_unique_len_after_exclusion():
@@ -106,7 +107,7 @@ def test_real_master_counts(paf, tmp_path):
          "--keep-noncoding"], check=True, capture_output=True)
     subprocess.run(
         [sys.executable, str(ROOT / "scripts" / "build_master.py"), "--in-gtf", str(lifted),
-         "--out-gtf", str(master), "--version", "v0"], check=True, capture_output=True)
+         "--out-gtf", str(master), "--version", "v0", "--fasta", str(tgt)], check=True, capture_output=True)
     res = classify(footprints(read_gtf(str(master))))
     emb = {g[len(P):] for g, c in res.items() if c.cls == "embedded"}
     expected = {n.strip().replace(" ", "_") for n in EXPECTED_EMBEDDED.split(",")}
@@ -114,5 +115,8 @@ def test_real_master_counts(paf, tmp_path):
     assert sorted(expected - emb) == [] and sorted(emb - expected) == []
     assert len(emb) == 40
     assert sum(c.cls != "embedded" for c in res.values()) == 218
+    assert sum(c.cls == "non_overlapping" for c in res.values()) == 143
+    assert sum(c.cls == "partially_overlapping" for c in res.values()) == 75
+    assert res[P + "UL26"].cls == "partially_overlapping"
     assert not [g for g, c in res.items() if c.reason == "identical_footprint"]
     assert not [g for g, c in res.items() if c.cls == "retained_zero_unique"]
