@@ -1,11 +1,11 @@
 metric	value
 total_cds	258
-non_overlapping	160
-partially_overlapping	58
+non_overlapping	143
+partially_overlapping	75
 embedded	40
 excluded	40
 retained	218
 retained_zero_unique	0
 mirna	0
-tss	292
-tes	158
+tss	290
+tes	157
