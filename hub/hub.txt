@@ -1,0 +1,50 @@
+hub hsv1_annotation
+shortLabel HSV-1 KT899744delRR
+longLabel HSV-1 KOS KT899744delRR: BK012101.1-based quantification and visualization GTFs
+useOneFile on
+email https://github.com/dremellab/hsv1-annotation/issues
+descriptionUrl https://github.com/dremellab/hsv1-annotation
+
+genome KT899744delRR
+twoBitPath KT899744delRR/KT899744delRR.2bit
+chromSizes KT899744delRR/chrom.sizes
+organism HSV-1 KOS
+scientificName Human alphaherpesvirus 1
+description KT899744.1 without terminal repeats
+defaultPos KT899744:41000-44000
+
+track visualization
+shortLabel Visualization GTF
+longLabel All ORFs, variant transcripts and restored noncoding transcripts (visualization GTF)
+type bigBed 12
+bigDataUrl KT899744delRR/visualization.bb
+visibility pack
+color 0,60,160
+priority 1
+
+track quantification
+shortLabel Quantification GTF
+longLabel ORFs used for counting; ORFs embedded in a single same-strand ORF removed (quantification GTF)
+type bigBed 12
+bigDataUrl KT899744delRR/quantification.bb
+visibility pack
+color 0,0,0
+priority 2
+
+track excluded
+shortLabel Excluded ORFs
+longLabel ORFs excluded from quantification, labelled ORF_in_HOST (CDS span)
+type bigBed 6
+bigDataUrl KT899744delRR/excluded.bb
+visibility pack
+color 200,100,0
+priority 3
+
+track tss_tes
+shortLabel TSS / TES
+longLabel Transcript start (green) and end (red) sites from BK012101.1 mRNA ends
+type bigBed 9
+itemRgb on
+bigDataUrl KT899744delRR/tss_tes.bb
+visibility dense
+priority 4

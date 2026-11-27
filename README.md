@@ -208,6 +208,35 @@ the TSS/TES features. Do not use it for counting. Checks in IGV and UCSC
 have not been recorded yet; any feature types a browser rejects will be listed
 here.
 
+## UCSC Genome Browser hub
+
+`hub/` is a UCSC assembly hub for KT899744delRR (KT899744delRR is not a UCSC
+genome, so the hub carries its own sequence). To open it, go to
+<https://genome.ucsc.edu/cgi-bin/hgHubConnect>, choose "Connected Hubs" and
+paste:
+
+```
+https://raw.githubusercontent.com/dremellab/hsv1-annotation/main/hub/hub.txt
+```
+
+Tracks:
+
+| Track | Source | Items |
+|---|---|---|
+| Visualization GTF | `KT899744delRR.visualization.gtf` | 303 transcripts |
+| Quantification GTF | `KT899744delRR.quantification.gtf` | 245 transcripts |
+| Excluded ORFs | `KT899744delRR.excluded_CDSs.tsv`, labelled `ORF_in_HOST` | 40 |
+| TSS / TES | TSS (green) and TES (red) rows of the visualization GTF | 290 + 157 |
+
+Items are labelled by ORF name. The default view (KT899744:41,000-44,000)
+shows UL26 with the embedded UL26.5, which is present in the visualization
+track and absent from the quantification track. Rebuild after any change to
+`output/`:
+
+```bash
+./hub/build_hub.sh   # UCSC tools from the biocondatools env; override with UCSC_BIN
+```
+
 ## Tests
 
 ```bash
