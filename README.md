@@ -211,7 +211,14 @@ here.
 ## UCSC Genome Browser hub
 
 `hub/` is a UCSC assembly hub for KT899744delRR (KT899744delRR is not a UCSC
-genome, so the hub carries its own sequence). To open it, go to
+genome, so the hub carries its own sequence).
+
+**Open in UCSC:**
+[KT899744delRR hub at UL26/UL26.5](https://genome.ucsc.edu/cgi-bin/hgTracks?genome=KT899744delRR&hubUrl=https://raw.githubusercontent.com/dremellab/hsv1-annotation/main/hub/hub.txt&position=KT899744:41000-44000).
+This link is safe to share: it loads the hub from this repo into the
+viewer's own browser session and always shows the hub on `main`.
+
+Alternatively, go to
 <https://genome.ucsc.edu/cgi-bin/hgHubConnect>, choose "Connected Hubs" and
 paste:
 
