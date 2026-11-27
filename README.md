@@ -58,7 +58,9 @@ edited. Its header reads `Δ1-9603`, but the sequence shows the deletion is
 ## Method
 
 1. **Fetch and verify.** BK012101.1 (GenBank record, FASTA, GFF3) and
-   KT899744.1 (FASTA) are checked against `sources/checksums.md5`, and
+   KT899744.1 (FASTA) and the miRBase HSV-1 files are checked against
+   `sources/checksums.md5` (`build.sh` runs `scripts/fetch_sources.sh` to
+   download them only when this check fails), and
    KT899744delRR is rebuilt from KT899744.1 and compared with the committed
    FASTA.
 2. **Align.** `minimap2 -cx asm20 --cs --eqx -N 50 -p 0.3` of BK012101.1 onto
@@ -173,8 +175,9 @@ Committed in `output/KT899744delRR/`:
 | `liftover_report.tsv` | Per BK012101.1 transcript: lift status, coordinates, protein ID, `cds_check`, amino-acid differences |
 | `bk_to_delrr.paf` | The minimap2 alignment used for lifting |
 
-All GTFs use sequence name `KT899744`, source `Genbank`, and gene IDs prefixed
-`KT899744delRR_`.
+All GTFs use sequence name `KT899744`. Lifted rows use source `Genbank` and gene
+IDs prefixed `KT899744delRR_`; miRNA rows use source `miRBase_23.1` and ids
+`hsv1-mir-*` (precursors) and `hsv1-miR-*` (mature arms), with no prefix.
 
 ## miRNAs
 
@@ -189,7 +192,7 @@ files are reproducible; their MD5s are in `sources/checksums.md5`.
 KT899744delRR. With H11 annotated on both strands this gives 18 precursor
 records and 26 mature records (the H11-3p arm has one record per strand).
 Of the 17 placed precursors, 12 are exact matches on KT899744delRR, 3 are
-projected from BK012101.1 (H3, H15, H18) and 2 come from local alignment
+projected from BK012101.1 (H3, H18, and H15 after refinement) and 2 come from local alignment
 (H8, H17). The per-miRNA table is `output/KT899744delRR/KT899744delRR.miRNA_report.tsv`
 (columns: `name mirbase_id type chrom start end strand placement identity_pct
 aln_length flags`; coordinates are 1-based on `KT899744`).
@@ -208,7 +211,7 @@ aln_length flags`; coordinates are 1-based on `KT899744`).
 | H12 | exact_target | 121584-121671 (-) | 100.0 | none |
 | H13 | exact_target | 121595-121658 (+) | 100.0 | none |
 | H14 | exact_target | 112625-112713 (-) | 100.0 | none |
-| H15 | projected_from_BK012101.1 | 109955-110073 (-) | NA | length_changed |
+| H15 | projected_refined | 109955-110052 (-) | 100.0 | length_changed |
 | H16 | exact_target | 59819-59918 (+) | 100.0 | none |
 | H17 | local_alignment | 117183-117277 (-) | 97.9 | approximate |
 | H18 | projected_from_BK012101.1 | 121460-121554 (+) | NA | none |
@@ -217,11 +220,13 @@ aln_length flags`; coordinates are 1-based on `KT899744`).
 
 ### How the miRNA annotation was made
 
-1. **Download and filter.** `scripts/fetch_sources.sh` downloads miRBase 23.1
+1. **Download and filter.** `scripts/fetch_sources.sh` (run by `build.sh` only
+   when the checksums fail) downloads miRBase 23.1
    `hairpin.fa` and `mature.fa`, keeps the `>hsv1-` entries and writes
    `sources/miRBase_23.1/hsv1_{hairpin,mature}.fa`; the MD5s are checked.
 2. **Place precursors.** `scripts/place_mirnas.py` converts U to T and
-   searches both strands. For each hairpin it tries, in order:
+   searches both strands. (Report names of H11 records carry `_plus` or
+   `_minus`, the same suffix as the GTF ids.) For each hairpin it tries, in order:
    1. `exact_target`: exact match on KT899744delRR. One hit is placed. Two
       hits at the same start on opposite strands (a hairpin equal to its own
       reverse complement, H11) are both kept and flagged `strand_ambiguous`.
@@ -230,8 +235,14 @@ aln_length flags`; coordinates are 1-based on `KT899744`).
       start and end projected through the collinear minimap2 block (the
       `build_map` function of `scripts/lift_bk012101.py`). A hit is kept if
       both ends project. If the projection changes the length, the hit is
-      kept, the projected length is reported in `aln_length`, and the flag
-      `length_changed` is set (H15). Identity is `NA` for projected hits.
+      kept and flagged `length_changed`. Such a projection can be stretched by
+      an indel at a homopolymer edge (H15: an A9 run in BK012101.1 is A28 in
+      KT899744delRR), so it is refined: the hairpin is aligned
+      (Smith-Waterman, as in 3) within 150 nt of the projected interval on the
+      same strand, the placement becomes `projected_refined` and identity and
+      `aln_length` come from that alignment (the refinement is used only if the
+      alignment covers at least 80% of the hairpin at 80% identity or better).
+      Identity is `NA` for other projected hits.
    3. `local_alignment`: otherwise (H8, H17), the mature arm(s) are placed
       by methods 1 and 2, then the hairpin is aligned (Smith-Waterman,
       match +2, mismatch -3, gap -5) to KT899744delRR within 150 nt of the
@@ -240,7 +251,8 @@ aln_length flags`; coordinates are 1-based on `KT899744`).
    4. `unplaced`: no GTF rows, only a report row. The flag is
       `in_deleted_region` if the sequence matches KT899744.1 exactly inside
       a block removed from KT899744delRR (blocks from `scripts/verify_delrr.py`),
-      otherwise `no_match`.
+      otherwise `no_match`. A mature arm that matches the genome but not inside
+      its precursor gets `outside_precursor`.
 3. **Place mature arms.** Each mature miRNA is placed by methods 1 and 2 on
    its own and kept only where it lies inside a placed precursor of the same
    miRNA (`hsv1-miR-H1-5p` belongs to `hsv1-mir-H1`) on the same strand. A
@@ -329,7 +341,8 @@ as it is, and `publish.sh` never writes to it. New analyses choose the
 
 `KT899744delRR.BK012101.vis.gtf` is meant for IGV and UCSC: it keeps all
 ORFs (including embedded ones such as UL26.5), the noncoding transcripts and
-the TSS/TES features. Do not use it for counting. Checks in IGV and UCSC
+the TSS/TES features and the miRNA precursor and mature records. Do not use it
+for counting. Checks in IGV and UCSC
 have not been recorded yet; any feature types a browser rejects will be listed
 here.
 
@@ -378,7 +391,13 @@ track and absent from the quantification track. Rebuild after any change to
 
 The tests use small synthetic GTFs: each class, strand-aware overlap,
 containment across several transcripts of one gene, the identical-footprint
-tie-break, chains, and effective unique length after exclusion.
+tie-break, chains, and effective unique length after exclusion. The miRNA
+tests (`tests/test_place_mirnas.py`) use toy genomes for each placement path:
+a palindromic hairpin on both strands, an antisense pair, projection, refinement
+of a projection that changes length, local alignment, mature arms kept only
+inside their precursor, and the unplaced reasons. They also check, on the real
+sources (needs minimap2), the placement counts and that the quantification GTF
+is unchanged.
 
 ## Methods text for publication
 

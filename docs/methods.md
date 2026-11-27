@@ -25,7 +25,7 @@ start and end sites were taken from the 5' and 3' ends of the BK012101.1
 mRNAs and are included in the annotation used for visualization only.
 HSV-1 miRNAs from miRBase release 23.1 (Kozomara et al. 2019) were placed on
 KT899744delRR by exact match of each hairpin, then by projection of exact
-BK012101.1 matches through the minimap2 alignment, then by Smith-Waterman
+BK012101.1 matches through the minimap2 alignment (re-aligned locally when the projection changed the length), then by Smith-Waterman
 local alignment around the already placed mature arm; mature arms were kept
 only inside a placed precursor on the same strand. The palindromic H11
 precursor was annotated on both strands, and miR-H5, whose sequence lies in
