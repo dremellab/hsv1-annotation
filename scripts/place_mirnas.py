@@ -5,6 +5,8 @@ Each precursor (hairpin) is placed by the first method that works:
   1. exact_target             exact match (either strand) on KT899744delRR
   2. projected_from_BK012101.1  exact match on BK012101.1, both ends projected
                               through the collinear minimap2 block
+     projected_refined       a projection that changed the length is re-aligned
+                              (Smith-Waterman, as in 3) near the projected interval
   3. local_alignment          Smith-Waterman of the hairpin around its already
                               placed mature arm(s) (flag "approximate")
   4. unplaced                 report row only; reason "in_deleted_region" when the
@@ -30,6 +32,7 @@ WINDOW = 150
 MATCH, MISMATCH, GAP = 2, -3, -5
 EXACT, PROJECTED, LOCAL, UNPLACED = (
     "exact_target", "projected_from_BK012101.1", "local_alignment", "unplaced")
+REFINED = "projected_refined"
 REPORT_COLS = ["name", "mirbase_id", "type", "chrom", "start", "end", "strand",
                "placement", "identity_pct", "aln_length", "flags"]
 
@@ -141,6 +144,23 @@ def smith_waterman(a: str, b: str):
     return score, j, j_end, cols, matches
 
 
+def align_near(seq, tgt, start, end, strand):
+    """Smith-Waterman of seq within WINDOW nt of [start, end] on strand.
+
+    Returns (score, start, end, columns, matches) in 1-based target coordinates, or None.
+    """
+    lo, hi = max(1, start - WINDOW), min(len(tgt), end + WINDOW)
+    win = tgt[lo - 1:hi]
+    if strand == "-":
+        win = revcomp(win)
+    score, b0, b1, cols, matches = smith_waterman(seq, win)
+    if cols == 0:
+        return None
+    if strand == "+":
+        return score, lo + b0, lo + b1 - 1, cols, matches
+    return score, hi - b1 + 1, hi - b0, cols, matches
+
+
 def precursor_of(mature_name: str) -> str:
     return re.sub(r"-[35]p$", "", mature_name).replace("-miR-", "-mir-")
 
@@ -171,27 +191,29 @@ def place(hairpins, matures, tgt, src, pmap, kt="", keep=KEEP):
     for name, acc, seq in hairpins:
         hits, method, flags = place_hits(seq, tgt, src, pmap)
         recs = []
+        if hits and method == PROJECTED and "length_changed" in flags:
+            # the projected interval is unreliable (e.g. a homopolymer indel at an edge)
+            refined = [(h, align_near(seq, tgt, h[0], h[1], h[2])) for h in hits]
+            if all(a and a[3] >= 0.8 * len(seq) and a[4] >= 0.8 * a[3] for _, a in refined):
+                for (s0, e0, st), (_, s, e, cols, matches) in refined:
+                    recs.append(Rec(name, acc, "precursor", s, e, st, REFINED,
+                                    round(100.0 * matches / cols, 1), cols, list(flags)))
+                hits = []
+                method = REFINED
         if hits:
             for s, e, st in hits:
                 recs.append(Rec(name, acc, "precursor", s, e, st, method,
                                 100.0 if method == EXACT else None, e - s + 1, list(flags)))
-        else:
+        elif method != REFINED:
             best = None
             for mn, _, _ in matures:
                 if precursor_of(mn) != name:
                     continue
                 for ms, me, mst in mat_hits[mn][0]:
-                    lo, hi = max(1, ms - WINDOW), min(len(tgt), me + WINDOW)
-                    win = tgt[lo - 1:hi]
-                    if mst == "-":
-                        win = revcomp(win)
-                    score, b0, b1, cols, matches = smith_waterman(seq, win)
-                    if cols == 0:
+                    aln = align_near(seq, tgt, ms, me, mst)
+                    if aln is None:
                         continue
-                    if mst == "+":
-                        s, e = lo + b0, lo + b1 - 1
-                    else:
-                        s, e = hi - b1 + 1, hi - b0
+                    score, s, e, cols, matches = aln
                     cand = (-score, mst, s, e, cols, matches)
                     if best is None or cand < best:
                         best = cand
@@ -221,7 +243,8 @@ def place(hairpins, matures, tgt, src, pmap, kt="", keep=KEEP):
                                     100.0 if mmethod == EXACT else None, e - s + 1, flags,
                                     p.gene_id, name + suffix))
                     break
-        out += recs or [Rec(name, acc, "mature", flags=[unplaced_reason(seq, kt, keep)])]
+        reason = "outside_precursor" if hits else unplaced_reason(seq, kt, keep)
+        out += recs or [Rec(name, acc, "mature", flags=[reason])]
     return out
 
 

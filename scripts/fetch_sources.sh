@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Download source records from NCBI into <outdir>/sources and verify checksums.
+# Download source records from NCBI and miRBase into <outdir>/sources and verify checksums.
+# The miRBase URLs are unversioned and serve the current release. The pinned files
+# are release 23.1, so once miRBase publishes a newer release the md5 check below
+# fails by design; set MIRBASE_DIR to a directory holding 23.1 hairpin.fa and mature.fa.
 # Usage: scripts/fetch_sources.sh <outdir>   (outdir = repository root)
 set -euo pipefail
 

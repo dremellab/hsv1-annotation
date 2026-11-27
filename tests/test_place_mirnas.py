@@ -111,6 +111,34 @@ def test_local_alignment_path():
     assert len(m) == 1 and m[0].start == 151 + 20
 
 
+def test_projection_with_edge_homopolymer_expansion_is_refined():
+    pre = rnd(19, 20) + "G"
+    x = "CC" + rnd(39, 21)
+    hp = "A" * 9 + x                         # 50 nt, starts with the A run
+    tail = rnd(40, 22)
+    src = pre + hp + tail
+    xt = x[:10] + ("A" if x[10] != "A" else "C") + x[11:]   # one substitution: no exact hit
+    tgt = pre + "A" * 28 + xt + tail         # run expanded 9 -> 28 at the hairpin 5' edge
+    m = [0] * (len(src) + 2)
+    for i in range(1, len(src) + 1):
+        m[i] = i if i <= 20 + 9 else i + 19
+    res = place([("hsv1-mir-H15", "MI15", hp)], [], tgt, src, (m, 1, len(src)))
+    p = recs_of(res, "hsv1-mir-H15")[0]
+    assert p.method == "projected_refined" and "length_changed" in p.flags
+    assert p.start == 20 + 19 + 1 and p.end == 20 + 28 + len(x)   # expansion excluded
+    assert p.aln_len == 50 and 90 <= p.identity < 100
+
+
+def test_mature_exact_but_outside_precursor():
+    tgt = rnd(400, 23)
+    hp = tgt[100:160]
+    mat = rnd(22, 24)
+    tgt = tgt[:300] + mat + tgt[322:]
+    res = place([("hsv1-mir-H3", "MI3", hp)], [("hsv1-miR-H3-5p", "MIMAT3", mat)], tgt, "", None)
+    m = recs_of(res, "hsv1-miR-H3-5p")
+    assert [(r.method, r.flags) for r in m] == [("unplaced", ["outside_precursor"])]
+
+
 def test_unplaced_no_match():
     res = place([("hsv1-mir-H99", "MI99", rnd(60, 12))], [], rnd(300, 13), "", None)
     assert [(r.name, r.method, r.flags) for r in res] == [
