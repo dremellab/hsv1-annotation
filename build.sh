@@ -7,6 +7,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PYTHON="${PYTHON:-/project/dremel_lab/miniforge3/envs/pipelines/bin/python}"
 HAROLD_SCRIPTS="${HAROLD_SCRIPTS:-/project/dremel_lab/workflows/pipelines/HAROLD/dev/workflow/scripts}"
+RIBOLD_SCRIPTS="${RIBOLD_SCRIPTS:-/sfs/gpfs/tardis/project/dremel_lab/workflows/pipelines/RIBOLD/ribold/workflow/scripts}"
 NAME="KT899744delRR"
 OUTDIR="output/$NAME"
 
@@ -53,7 +54,7 @@ echo "== 4. lift annotation"
 
 echo "== 5. master annotation"
 "$PYTHON" scripts/build_master.py --in-gtf "$WORK/lifted.gtf" \
-  --out-gtf "$OUTDIR/$NAME.master.gtf" --version "$VERSION"
+  --out-gtf "$OUTDIR/$NAME.master.gtf" --version "$VERSION" --fasta "$DELRR"
 
 echo "== 6. derive quantification and visualization GTFs"
 "$PYTHON" scripts/derive_gtfs.py --master "$OUTDIR/$NAME.master.gtf" --outdir "$OUTDIR" --name "$NAME"
@@ -70,11 +71,13 @@ QUANT="$OUTDIR/$NAME.quantification.gtf"
 (cd "$WORK" \
   && "$PYTHON" "$HAROLD_SCRIPTS/_fix_gtf.py" --ingtf "$QUANT" --outgtf "$WORK/fixed.gtf" \
   && "$PYTHON" "$HAROLD_SCRIPTS/_build_cds_gtf.py" --ingtf "$WORK/fixed.gtf" \
-       --regions "$ROOT/sources/$NAME/$NAME.fa.regions" --host "" --outgtf "$WORK/cds.gtf")
+       --regions "$ROOT/sources/$NAME/$NAME.fa.regions" --host "" --outgtf "$WORK/cds.gtf" \
+  && "$PYTHON" "$RIBOLD_SCRIPTS/_fix_gtf.py" --ingtf "$QUANT" --outgtf "$WORK/fixed_ribold.gtf")
 ncds() { awk -F'\t' '$3=="CDS"' "$1" | wc -l; }
 N_Q="$(ncds "$QUANT")"; N_F="$(ncds "$WORK/fixed.gtf")"; N_C="$(ncds "$WORK/cds.gtf")"
-echo "CDS rows: quant=$N_Q fixed=$N_F build_cds=$N_C"
-if [[ "$N_Q" != "$N_F" || "$N_F" != "$N_C" ]]; then
+N_R="$(ncds "$WORK/fixed_ribold.gtf")"
+echo "CDS rows: quant=$N_Q harold_fix=$N_F build_cds=$N_C ribold_fix=$N_R"
+if [[ "$N_Q" != "$N_F" || "$N_F" != "$N_C" || "$N_Q" != "$N_R" ]]; then
   echo "error: CDS row counts differ across pipeline helpers" >&2
   exit 1
 fi
@@ -84,9 +87,13 @@ SUM="$OUTDIR/$NAME.annotation_summary.tsv"
 "$PYTHON" - "$SUM" <<'PY'
 import csv, sys
 s = {r["metric"]: int(r["value"]) for r in csv.DictReader(open(sys.argv[1]), delimiter="\t")}
-assert s["total_cds"] == s["embedded"] + s["retained"], s
+assert s["total_cds"] == (s["non_overlapping"] + s["partially_overlapping"]
+                          + s["embedded"] + s["retained_zero_unique"]), s
 assert s["excluded"] == s["embedded"], s
+assert s["retained"] == s["total_cds"] - s["excluded"], s
 assert s["tss"] > 0 and s["tes"] > 0, s
+if s["retained_zero_unique"] > 0:
+    print("WARNING: %d retained_zero_unique ORF(s); expect zero counts for them" % s["retained_zero_unique"])
 print("summary arithmetic OK")
 PY
 cat "$SUM"

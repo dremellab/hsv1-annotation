@@ -53,8 +53,8 @@ if [[ "$APPLY" -ne 1 ]]; then
   exit 0
 fi
 
-cp "$QUANT_SRC" "$QUANT"
-cp "$VIS_SRC" "$VIS"
+cp --remove-destination "$QUANT_SRC" "$QUANT"
+cp --remove-destination "$VIS_SRC" "$VIS"
 ln -sfn "$NAME.fa" "$DEST/$REF.quant.fa"
 ln -sfn "$NAME.fa.fai" "$DEST/$REF.quant.fa.fai"
 printf '%s.quant\tKT899744\n' "$REF" > "$DEST/$REF.quant.fa.regions"
