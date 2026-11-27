@@ -60,3 +60,13 @@ def test_tss_tes_rows_standalone_pass():
     assert any("out of bounds" in e for e in check([row("TSS", 101, 101, 'gene_id "G9"; transcript_id "T9";')], GENOME))
     assert any("transcript_id" in e for e in check([row("TES", 5, 5, 'gene_id "G9";')], GENOME))
     assert any("space" in e for e in check([row("TSS", 5, 5, 'gene_id "G 9"; transcript_id "T9";')], GENOME))
+
+
+def test_mirna_gene_without_cds_passes():
+    rows = gene_rows(gene_attr=' gene_biotype "miRNA";', cds=False)
+    assert check(rows, GENOME) == []
+
+
+def test_untyped_gene_without_cds_fails():
+    rows = gene_rows(gene_attr=' gene_biotype "other";', cds=False)
+    assert any("without CDS" in e for e in check(rows, GENOME))

@@ -95,3 +95,17 @@ def test_unclipped_or_interior_ends_kept():
     out = tss_tes_rows(rows, 1000)
     assert {r[3] for r in by_feature(out, "TSS")} == {"1", "10"}
     assert {r[3] for r in by_feature(out, "TES")} == {"1000", "900"}
+
+
+def test_cli_mirna_gtf_merged_and_sorted(tmp_path):
+    base = tmp_path / "in.gtf"
+    mi = tmp_path / "mi.gtf"
+    (tmp_path / "g.fa").write_text(">KT899744\n" + "A" * 1000 + "\n")
+    base.write_text("\t".join(exon("t1", 100, 200, "+")) + "\n")
+    mi.write_text("#x\nKT899744\tmiRBase_23.1\tgene\t50\t70\t.\t+\t.\tgene_id \"hsv1-mir-H1\";\n")
+    out = tmp_path / "out.gtf"
+    subprocess.run([sys.executable, str(BUILD), "--in-gtf", str(base), "--mirna-gtf", str(mi),
+                    "--out-gtf", str(out), "--version", "v0", "--fasta", str(tmp_path / "g.fa")],
+                   check=True, capture_output=True)
+    body = read_gtf(str(out))
+    assert body[0][8].startswith('gene_id "hsv1-mir-H1"') and body[0][3] == "50"

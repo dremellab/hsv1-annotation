@@ -10,7 +10,7 @@ from classify import annotated_lengths, classify, footprints
 from gtflib import parse_attrs, read_gtf, write_gtf
 
 METRICS = ["total_cds", "non_overlapping", "partially_overlapping", "embedded", "excluded",
-           "retained", "retained_zero_unique", "mirna", "tss", "tes"]
+           "retained", "retained_zero_unique", "mirna", "mirna_precursors", "mirna_unplaced", "tss", "tes"]
 EXCL_COLS = ["cds_id", "gene_name", "chrom", "start", "end", "strand", "cds_length",
              "containing_cds_id", "overlapping_bases", "unique_bases", "reason", "cds_check"]
 OVL_COLS = ["gene_a", "gene_b", "strand_a", "strand_b", "same_strand", "overlap_bases",
@@ -30,7 +30,7 @@ def _write_tsv(path: str, cols: list[str], rows: list[list]) -> None:
         w.writerows(rows)
 
 
-def derive(master: str, outdir: str, name: str) -> None:
+def derive(master: str, outdir: str, name: str, mirna_report: str | None = None) -> None:
     rows = read_gtf(master)
     header = _header(master)
     fp = footprints(rows)
@@ -47,7 +47,7 @@ def derive(master: str, outdir: str, name: str) -> None:
         if r[2] == "gene":
             gene_name[gid] = a.get("gene_name", gid)
             chrom[gid] = r[0]
-            if a.get("gene_biotype") == "noncoding":
+            if a.get("gene_biotype") in ("noncoding", "miRNA"):
                 noncoding.add(gid)
         elif r[2] == "transcript":
             v = a.get("cds_check", "ok")
@@ -87,8 +87,18 @@ def derive(master: str, outdir: str, name: str) -> None:
     count = {k: sum(c.cls == k for c in res.values())
              for k in ("non_overlapping", "partially_overlapping", "embedded",
                        "retained_zero_unique")}
+    unplaced = 0
+    if mirna_report:
+        with open(mirna_report) as fh:
+            unplaced = sum(l.rstrip("\n").split("\t")[7] == "unplaced" for l in fh)
     summary = {"total_cds": len(res), **count, "excluded": len(embedded),
-               "retained": len(res) - len(embedded), "mirna": 0,
+               "retained": len(res) - len(embedded),
+               "mirna": sum(r[2] == "transcript" and parse_attrs(r[8]).get("transcript_biotype") == "miRNA"
+                            for r in rows),
+               "mirna_precursors": sum(
+                   r[2] == "transcript" and parse_attrs(r[8]).get("transcript_biotype") == "pre_miRNA"
+                   for r in rows),
+               "mirna_unplaced": unplaced,
                "tss": sum(r[2] == "TSS" for r in rows), "tes": sum(r[2] == "TES" for r in rows)}
     _write_tsv(f"{pre}.annotation_summary.tsv", ["metric", "value"],
                [[m, summary[m]] for m in METRICS])
@@ -99,8 +109,9 @@ def main() -> None:
     ap.add_argument("--master", required=True)
     ap.add_argument("--outdir", required=True)
     ap.add_argument("--name", required=True)
+    ap.add_argument("--mirna-report", help="miRNA report TSV (counts unplaced entries)")
     a = ap.parse_args()
-    derive(a.master, a.outdir, a.name)
+    derive(a.master, a.outdir, a.name, a.mirna_report)
 
 
 if __name__ == "__main__":

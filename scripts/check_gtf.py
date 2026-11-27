@@ -103,7 +103,7 @@ def check(rows: list[list[str]], genome: str) -> list[str]:
             if sum(e - s + 1 for s, e, _ in d["stop_codon"]) != 3:
                 errs.append("stop codon length != 3: %s" % t)
     for gid in genes:
-        if gene_cds[gid] == 0 and gene_biotype[gid] != "noncoding":
+        if gene_cds[gid] == 0 and gene_biotype[gid] not in ("noncoding", "miRNA"):
             errs.append("coding gene without CDS: %s" % gid)
     return errs
 

@@ -37,6 +37,12 @@ def write_master(path):
     rows += [row("gene", 700, 800, f'gene_id "{P}N"; gene_name "N"; gene_biotype "noncoding";'),
              row("transcript", 700, 800, f'gene_id "{P}N"; transcript_id "{P}N_t";'),
              row("exon", 700, 800, f'gene_id "{P}N"; transcript_id "{P}N_t";')]
+    mg = 'gene_id "hsv1-mir-M"; gene_name "hsv1-mir-M"; gene_biotype "miRNA";'
+    rows.append(row("gene", 900, 970, mg))
+    for tid, s, e, bt in (("hsv1-mir-M", 900, 970, "pre_miRNA"), ("hsv1-miR-M-5p", 905, 926, "miRNA"),
+                          ("hsv1-miR-M-3p", 945, 966, "miRNA")):
+        ta = f'gene_id "hsv1-mir-M"; transcript_id "{tid}"; transcript_biotype "{bt}";'
+        rows += [row("transcript", s, e, ta), row("exon", s, e, ta)]
     rows += [row("TSS", 100, 100, f'gene_id "{P}A"; transcript_id "{P}A_t";'),
              row("TES", 300, 300, f'gene_id "{P}A"; transcript_id "{P}A_t";')]
     with open(path, "w") as fh:
@@ -68,7 +74,7 @@ def test_quant_excludes_embedded_noncoding_tss(out):
     genes = {r[8].split('"')[1] for r in rows}
     assert genes == {P + "A", P + "B", P + "D"}
     assert not {r[2] for r in rows} & {"TSS", "TES"}
-    assert "noncoding" not in text
+    assert "noncoding" not in text and "miRNA" not in text
 
 
 def test_vis_equals_master(out, tmp_path):
@@ -91,13 +97,14 @@ def test_excluded_columns_and_values(out):
 def test_summary_arithmetic(out):
     s = {r["metric"]: int(r["value"]) for r in tsv(out / f"{NAME}.annotation_summary.tsv")}
     assert list(s) == ["total_cds", "non_overlapping", "partially_overlapping", "embedded",
-                       "excluded", "retained", "retained_zero_unique", "mirna", "tss", "tes"]
+                       "excluded", "retained", "retained_zero_unique", "mirna",
+                       "mirna_precursors", "mirna_unplaced", "tss", "tes"]
     assert s["total_cds"] == 4 and s["embedded"] == 1 and s["tss"] == 1 and s["tes"] == 1
     assert s["total_cds"] == (s["non_overlapping"] + s["partially_overlapping"]
                               + s["embedded"] + s["retained_zero_unique"])
     assert s["excluded"] == s["embedded"]
     assert s["retained"] == s["total_cds"] - s["excluded"]
-    assert s["mirna"] == 0
+    assert s["mirna"] == 2 and s["mirna_precursors"] == 1 and s["mirna_unplaced"] == 0
 
 
 def test_overlaps_includes_opposite_strand(out):
@@ -138,3 +145,18 @@ def test_real_derive(paf, tmp_path):
     genome = read_fasta(str(tgt))
     for kind in ("quantification", "visualization"):
         assert check(read_gtf(str(o / f"{NAME}.{kind}.gtf")), genome) == []
+
+
+def test_mirna_unplaced_from_report(tmp_path):
+    m = tmp_path / "master.gtf"
+    write_master(m)
+    rep = tmp_path / "rep.tsv"
+    rep.write_text("name\tmirbase_id\ttype\tchrom\tstart\tend\tstrand\tplacement\t"
+                   "identity_pct\taln_length\tflags\n"
+                   "a\tMI1\tprecursor\tNA\tNA\tNA\tNA\tunplaced\tNA\tNA\tin_deleted_region\n"
+                   "b\tMI2\tprecursor\tK\t1\t5\t+\texact_target\t100.0\t5\tnone\n")
+    o = tmp_path / "out"
+    subprocess.run([sys.executable, str(SCRIPT), "--master", str(m), "--outdir", str(o),
+                    "--name", NAME, "--mirna-report", str(rep)], check=True, capture_output=True)
+    s = {r["metric"]: int(r["value"]) for r in tsv(o / f"{NAME}.annotation_summary.tsv")}
+    assert s["mirna_unplaced"] == 1

@@ -66,9 +66,11 @@ def main() -> None:
     ap.add_argument("--out-gtf", required=True)
     ap.add_argument("--version", required=True)
     ap.add_argument("--fasta", required=True, help="genome FASTA (for its length)")
+    ap.add_argument("--mirna-gtf", help="optional miRNA GTF, appended before sorting")
     a = ap.parse_args()
     rows = read_gtf(a.in_gtf)
-    rows = sorted(rows + tss_tes_rows(rows, len(read_fasta(a.fasta))), key=sort_key)
+    extra = read_gtf(a.mirna_gtf) if a.mirna_gtf else []
+    rows = sorted(rows + tss_tes_rows(rows, len(read_fasta(a.fasta))) + extra, key=sort_key)
     write_gtf(a.out_gtf, rows, [f"#!annotation-version {a.version}"])
 
 

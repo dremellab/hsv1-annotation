@@ -52,15 +52,24 @@ echo "== 4. lift annotation"
   --tgt-fa "$DELRR" --paf "$OUTDIR/bk_to_delrr.paf" --out-gtf "$WORK/lifted.gtf" \
   --report "$OUTDIR/liftover_report.tsv" --date "$VERSION" --keep-noncoding
 
+echo "== 4b. place miRBase HSV-1 miRNAs"
+MB=sources/miRBase_23.1
+"$PYTHON" scripts/place_mirnas.py --hairpin "$MB/hsv1_hairpin.fa" --mature "$MB/hsv1_mature.fa" \
+  --tgt-fa "$DELRR" --src-fa "$BK/BK012101.1.fa" --kt-fa sources/KT899744.1/KT899744.1.fa \
+  --paf "$OUTDIR/bk_to_delrr.paf" --version "$VERSION" \
+  --out-gtf "$OUTDIR/$NAME.miRNA.gtf" --out-bed "$OUTDIR/$NAME.miRNA.bed" \
+  --report "$OUTDIR/$NAME.miRNA_report.tsv"
+
 echo "== 5. master annotation"
-"$PYTHON" scripts/build_master.py --in-gtf "$WORK/lifted.gtf" \
+"$PYTHON" scripts/build_master.py --in-gtf "$WORK/lifted.gtf" --mirna-gtf "$OUTDIR/$NAME.miRNA.gtf" \
   --out-gtf "$OUTDIR/$NAME.master.gtf" --version "$VERSION" --fasta "$DELRR"
 
 echo "== 6. derive quantification and visualization GTFs"
-"$PYTHON" scripts/derive_gtfs.py --master "$OUTDIR/$NAME.master.gtf" --outdir "$OUTDIR" --name "$NAME"
+"$PYTHON" scripts/derive_gtfs.py --master "$OUTDIR/$NAME.master.gtf" --outdir "$OUTDIR" --name "$NAME" \
+  --mirna-report "$OUTDIR/$NAME.miRNA_report.tsv"
 
 echo "== 7. check GTFs"
-for kind in quantification visualization; do
+for kind in quantification visualization miRNA; do
   "$PYTHON" scripts/check_gtf.py --gtf "$OUTDIR/$NAME.$kind.gtf" --fasta "$DELRR"
 done
 
@@ -92,6 +101,7 @@ assert s["total_cds"] == (s["non_overlapping"] + s["partially_overlapping"]
 assert s["excluded"] == s["embedded"], s
 assert s["retained"] == s["total_cds"] - s["excluded"], s
 assert s["tss"] > 0 and s["tes"] > 0, s
+assert s["mirna"] > 0 and s["mirna_precursors"] > 0, s
 if s["retained_zero_unique"] > 0:
     print("WARNING: %d retained_zero_unique ORF(s); expect zero counts for them" % s["retained_zero_unique"])
 print("summary arithmetic OK")
